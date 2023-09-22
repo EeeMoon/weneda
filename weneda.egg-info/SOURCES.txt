@@ -1,0 +1,9 @@
+setup.py
+weneda/__init__.py
+weneda/format.py
+weneda/style.py
+weneda/utils.py
+weneda.egg-info/PKG-INFO
+weneda.egg-info/SOURCES.txt
+weneda.egg-info/dependency_links.txt
+weneda.egg-info/top_level.txt
