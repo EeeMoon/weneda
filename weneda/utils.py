@@ -1,3 +1,4 @@
+import re
 from fontTools.ttLib import TTFont
 
 
@@ -38,3 +39,42 @@ def has_glyph(char: chr, font: str | bytes) -> bool:
         checks = (ord(char) in table.cmap.keys() for table in f['cmap'].tables)
 
     return any(checks)
+
+
+def fix_display(text: str, font: str, placeholder: chr = "?") -> str:
+    """
+    Replaces unsupported characters by font with placeholder.
+
+    Atrtibutes
+    ----------
+    text: `str`
+        String to validate.
+    """
+    for i, char in enumerate(text):
+        if has_glyph(char, font): 
+            continue
+
+        text[i] = placeholder
+          
+    return text
+
+
+def urlify(text: str) -> str:
+    """
+    Converts the string to readable URL version.
+
+    Attributes
+    ----------
+    text: `str`
+        String to format.
+
+    ### Example usage
+    ```
+    text = urlify("Hello, world!")
+
+    print(text) # hello-world
+    ```
+    """
+    return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
+
+

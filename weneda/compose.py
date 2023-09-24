@@ -1,14 +1,15 @@
 import re
 from typing import Iterable
 
-from .utils import get_width, has_glyph
+from .utils import get_width
 
 
 def placeholder(li: str = "{", ri: str = "}"):
     """
     Decorator that tranforms a function into a placeholder formatter.
 
-    ## Attributes
+    Attributes
+    ----------
     li: `str`
         Left pattern to identificate a placeholder.
         
@@ -25,8 +26,8 @@ def placeholder(li: str = "{", ri: str = "}"):
             return "monday"
     
     text = format_text("Hello, {name}! Today is {day}!", name="Alex"}) 
-    print(text)
-    # Hello, Alex! Today is monday!
+
+    print(text) # Hello, Alex! Today is monday!
     ```
     """
     if not isinstance(li, str) or not isinstance(ri, str):
@@ -38,7 +39,8 @@ def placeholder(li: str = "{", ri: str = "}"):
             """
             Formats string with placeholders based on given data.
 
-            ## Attributes
+            Attributes
+            ----------
             text: `str`
                 Text to format.
 
@@ -70,7 +72,8 @@ def form(value: int,
     """
     Returns a word form based on the amount.
 
-    ## Attributes
+    Attributes
+    ----------
     value: `int`
         Exact amount.
 
@@ -88,8 +91,7 @@ def form(value: int,
     count = 4
     text = form(count, "груша", "груші", "груш")
 
-    print(f"{count} {text}")
-    # 4 груші
+    print(f"{count} {text}") # 4 груші
     ```
     """
     if value < 0:
@@ -110,7 +112,8 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
     """
     Returns a formatted time string.
 
-    ## Attributes
+    Attributes
+    ----------
     seconds: `float`
         Time in seconds.
 
@@ -132,13 +135,12 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
 
     ### Example usage
     ```
-    time = ftime(4125, {
+    text = format_time(4125, {
         "d": "!{} дн.", # text will be displayed even if it equals zero
         "h": "{} год.", # 1 form
         "m": ("{} хвилина", "{} хвилини", "{} хвилин") # 3 forms
     })
-    print(text)
-    # 0 дн. 1 год. 8 хвилин
+    print(text) # 0 дн. 1 год. 8 хвилин
     ```
     """        
     values = {
@@ -185,7 +187,8 @@ def space_between(items: Iterable[str],
     """
     Distributes space between the strings. Works as CSS space-between.
 
-    ## Attributes
+    Attributes
+    ----------
     items: `Iterable[str]`
         List of strings.
         
@@ -215,51 +218,3 @@ def space_between(items: Iterable[str],
     return (space*ph_len).join(items)
 
 
-def crop_text(text: str, font: str | bytes, max_width: int, placeholder: str = "...") -> str:
-    ph_width = get_width(placeholder, font)
-    text_width = get_width(text, font)
-
-    if text_width <= max_width:
-        return text
-
-    left = 0
-    right = len(text)
-
-    while left < right:
-        mid = (left + right) // 2
-        current_width = get_width(text[:mid], font)
-        current_width += ph_width
-
-        if current_width <= max_width:
-            left = mid + 1
-        else:
-            right = mid
-
-    crop_point = left
-
-    if crop_point == len(text):
-        placeholder = ""
-
-    return text[:crop_point] + placeholder
-
-
-def replace_no_glyph(text: str, font: str, placeholder: chr = "?") -> str:
-    """
-    Replaces unsupported characters by font with placeholder.
-
-    Atrtibutes
-    ----------
-    text: `str`
-        String to validate.
-    """
-    for i, char in enumerate(text):
-        if has_glyph(char, font): 
-            continue
-
-        text[i] = placeholder
-          
-    return text
-
-
-def urlify(text: str):
-    return re.sub(r"\s+", '-', text.lower())

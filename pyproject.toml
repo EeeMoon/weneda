@@ -15,5 +15,3 @@ include = ["pyproject.toml", "LICENSE"]
 python = "^3.6"
 fonttools = "*"
 
-[tool.poetry.dev-dependencies]
-
