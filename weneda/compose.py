@@ -1,7 +1,7 @@
 import re
 from typing import Iterable
 
-from .utils import text_width
+from .utils import get_width, has_glyph
 
 
 def placeholder(li: str = "{", ri: str = "}"):
@@ -63,10 +63,10 @@ def placeholder(li: str = "{", ri: str = "}"):
     return helper
 
 
-def get_form(value: int, 
-             singlef: str, 
-             doublef: str, 
-             quintuplef: str):
+def form(value: int, 
+         singlef: str, 
+         doublef: str, 
+         quintuplef: str):
     """
     Returns a word form based on the amount.
 
@@ -168,7 +168,7 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
     for key, value in pattern.items():
         if isinstance(value, (tuple, list)):
             if len(value) == 3:
-                value: str = get_form(result[key], *value)
+                value: str = form(result[key], *value)
             else:
                 raise ValueError(f"{key} must have 3 forms instead of {len(value)}")
             
@@ -178,7 +178,7 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
     return joiner.join(display_parts)
 
 
-def space_between(elements: Iterable[str], 
+def space_between(items: Iterable[str], 
                   width: int = 2340, 
                   space: str = " ", 
                   font: str | bytes | None = None):
@@ -186,7 +186,7 @@ def space_between(elements: Iterable[str],
     Distributes space between the strings. Works as CSS space-between.
 
     ## Attributes
-    elements: `Iterable[str]`
+    items: `Iterable[str]`
         List of strings.
         
     width: `int`
@@ -202,15 +202,64 @@ def space_between(elements: Iterable[str],
         Font name or bytes-like object.
         If `None`, all characters will have width of 64 (monospace font).
     """
-    if len(elements) == 1:
-        return elements[0]
+    if len(items) == 1:
+        return items[0]
     
-    joined = ''.join(elements)
+    joined = ''.join(items)
     
-    el_space = text_width(joined, font) if font else 64*len(joined)
-    ph_space = text_width(space, font) if font else 64
+    el_space = get_width(joined, font) if font else 64*len(joined)
+    ph_space = get_width(space, font) if font else 64
 
-    ph_len = int((width - el_space) / (len(elements)-1) / ph_space)
+    ph_len = int((width - el_space) / (len(items)-1) / ph_space)
 
-    return (space*ph_len).join(elements)
+    return (space*ph_len).join(items)
 
+
+def crop_text(text: str, font: str | bytes, max_width: int, placeholder: str = "...") -> str:
+    ph_width = get_width(placeholder, font)
+    text_width = get_width(text, font)
+
+    if text_width <= max_width:
+        return text
+
+    left = 0
+    right = len(text)
+
+    while left < right:
+        mid = (left + right) // 2
+        current_width = get_width(text[:mid], font)
+        current_width += ph_width
+
+        if current_width <= max_width:
+            left = mid + 1
+        else:
+            right = mid
+
+    crop_point = left
+
+    if crop_point == len(text):
+        placeholder = ""
+
+    return text[:crop_point] + placeholder
+
+
+def replace_no_glyph(text: str, font: str, placeholder: chr = "?") -> str:
+    """
+    Replaces unsupported characters by font with placeholder.
+
+    Atrtibutes
+    ----------
+    text: `str`
+        String to validate.
+    """
+    for i, char in enumerate(text):
+        if has_glyph(char, font): 
+            continue
+
+        text[i] = placeholder
+          
+    return text
+
+
+def urlify(text: str):
+    return re.sub(r"\s+", '-', text.lower())
