@@ -11,14 +11,14 @@ class Database:
     path: `str`
         Path to database file.
     """
-    def __init__(self, path:str):
+    def __init__(self, path: str):
         self.path = path
         self.tables: dict[str, "Table"] = {}
 
     def _connect(self):
         return sqlite3.connect(self.path)
 
-    def _fetch(self, cursor:sqlite3.Cursor, mode):
+    def _fetch(self, cursor: sqlite3.Cursor, mode: str):
         if mode == "one":
             return cursor.fetchone()
         if mode == "many":
@@ -28,7 +28,7 @@ class Database:
 
         return None
     
-    def execute(self, query: str, values: tuple = (), *, fetch: str = None):
+    def execute(self, query: str, values: tuple = (), *, fetch: str | None = None):
         db = self._connect()
         cursor = db.cursor()
 
@@ -63,17 +63,23 @@ class Table:
     """
     Class representing database table.
     """
+    __slots__ = (
+        'db',
+        'name',
+        'columns',
+        'where'
+    )
+
     def __init__(self, 
                  db: Database,
                  name: str, 
                  columns: tuple[str], 
-                 extra: str,
-                 args: tuple[str]):
+                 where: dict):
         self.db: Database = db
         self.name: str = name
         self.columns: tuple = columns
-        self.extra: str = extra
-        self.args: tuple = args
+        self.where: dict = where
+        self.extra: str = f"WHERE {' AND '.join((f'`{k}` = {v}' for k, v in where.items()))}"
 
         db.tables[name] = self
 
@@ -82,28 +88,38 @@ class Table:
     def create(self) -> None:
         self.db.execute(f"CREATE TABLE IF NOT EXISTS `{self.name}`({', '.join(self.columns)})")
 
-        for col in self.columns:
+        for num, col in enumerate(self.columns):
             try:
-                self.db.execute(f"""ALTER TABLE `{self.name}` ADD COLUMN `{col}` BIGINT""")
+                t = "BIGINT" if num > 0 else "INTEGER PRIMARY KEY"
+                self.db.execute(f"ALTER TABLE `{self.name}` ADD COLUMN `{col}` {t}")
             except sqlite3.OperationalError: pass
 
-    def insert(self, pairs: dict) -> bool:
+    def insert(self, **kwargs) -> bool:
         """
-        Inserts new row.
+        Inserts new row if not exists.
 
         Attributes
         ----------
-        pairs: `dict`
+        kwargs
             Key for column name and value for data.
-        """
+        """        
+        if self.exists(): 
+            return False
+        
+        columns = list(self.where.keys()) + list(kwargs.keys())
+        values = list(self.where.values()) + list(kwargs.values())
+        placeholders = ', '.join(['?'] * len(columns))
+
         self.db.execute(
-            f"INSERT INTO `{self.name}`({', '.join(pairs)}) VALUES({', '.join(['?' for _ in pairs])})", 
-            pairs.values()
+            f"INSERT INTO `{self.name}`({', '.join(columns)}) VALUES({placeholders})", 
+            tuple(values)
         )
+
+        return True
 
     def exists(self):
         """
-        Check if row with specified args exists.
+        Check if row exists.
 
         Attributes
         ----------
@@ -119,7 +135,7 @@ class Table:
 
     def get(self, key: str, default = None):
         """
-        Get value from the table (first matched).
+        Get value from the table.
 
         Attributes
         ----------
@@ -133,9 +149,9 @@ class Table:
 
         if not data: return default
 
-        return data[0] if data[0] else default
+        return data[0] or default
     
-    def getmany(self, keys: list[str]):
+    def getmany(self, keys: tuple[str]):
         """
         Get all specified values from the table (first matched).
 
@@ -208,26 +224,24 @@ class Table:
         value: Any
             Value to set into field.
         """
-        if not self.exists(): 
-            self.insert({k: v for k, v in zip(self.columns, self.args)})
+        self.insert()
 
         self.db.execute(f"UPDATE `{self.name}` SET `{key}` = ? {self.extra}", (value,))
     
-    def setmany(self, pairs: dict):
+    def setmany(self, **kwargs):
         """
         Set all specified values in the table.
 
         Attributes
         ----------
-        pairs: `dict`
-            Dict of data. Key - column name, value - value to set. 
+        kwargs:
+            Key - column name, value - value to set. 
         """
-        if not self.exists(): 
-            self.insert({k: v for k, v in zip(self.columns, self.args)})
+        self.insert()
 
         self.db.execute(
-            f"UPDATE `{self.name}` SET {', '.join((f'`{key}` = ?' for key in pairs))} {self.extra}", 
-            pairs.values()
+            f"UPDATE `{self.name}` SET {', '.join((f'`{key}` = ?' for key in kwargs))} {self.extra}", 
+            kwargs.values()
         )
 
     def setjson(self, key: str, value):
@@ -256,8 +270,7 @@ class Table:
         value: Any
             Value to set into the field.
         """
-        if not self.exists(): 
-            self.insert({k: v for k, v in zip(self.columns, self.args)})
+        self.insert()
 
         splitted = path.split('.')
 
@@ -285,7 +298,6 @@ class Table:
 
         return
 
-
     def update(self, key: str, value: int):
         """
         Update int value in the table.
@@ -298,8 +310,7 @@ class Table:
         value: `int`
             Value to update field. Can be < 0.
         """
-        if not self.exists(): 
-            self.insert({k: v for k, v in zip(self.columns, self.args)})
+        self.insert()
 
         v = self.get(key)
 
@@ -324,8 +335,7 @@ class Table:
         value: Any
             Value to update the field.
         """
-        if not self.exists(): 
-            self.insert({k: v for k, v in zip(self.columns, self.args)})
+        self.insert()
 
         splitted = path.split('.')
         
@@ -354,7 +364,6 @@ class Table:
 
         return True
 
-
     def remove(self):
         """
         Remove row from the table.
@@ -374,9 +383,8 @@ class Table:
 class Users(Table):
     def __init__(self, user_id):
         super().__init__(
-            Database(), 
+            Database("test.db"), 
             "users", 
             ("user_id", "data"), 
-            "WHERE user_id = {0}", 
-            [user_id]
-        )
+            {"user_id": user_id}
+        )   
