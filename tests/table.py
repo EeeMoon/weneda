@@ -1,20 +1,64 @@
+import re
+
+
 class Item:
     def __init__(self,
                  content: str,
-                 align: chr = 'c') -> None:
-        self.content: str = content
+                 align: chr = 'l') -> None:
         self.align: chr = align
+
+        self._from_content(content)
+
+    def _from_content(self, content):
+        ansi_pattern = r'\033\[[0-9;]*m'
+
+        self.colors: dict[int, str] = {match.start(): match.group() for match in re.finditer(ansi_pattern, content)}
+        self.content: str = re.sub(ansi_pattern, '', content.replace('\n', ''))
+
+    def formatted(self):
+        content_list = list(self.content)
+
+        for i in self.colors:
+            content_list.insert(i, self.colors[i])
+
+        return ''.join(content_list)
+    
+    def edit(self, content: str):
+        self._from_content(content)
+        return self
 
 
 class Table:
-    def __init__(self) -> None:
+    def __init__(self, col_widths: dict[int, int] = None) -> None:
         self._rows: list[list[Item]] = []
-        self._col_widths: dict = {}
-        self._width: int = 0
+        self._col_widths: dict = col_widths
+        self._fixed_widths: list = list(col_widths.keys())
         self._chars: list[chr] = [' ', '-', '|', '+']
 
+    def _fit_cols(self, items: list):
+        result = []
+
+        for num, item in enumerate(items):
+            content = item.content
+            width = self._col_widths.get(num, 0)
+
+            if width <= 0:
+                result.append([item.edit(content)])
+            else:
+                result.append(
+                    [item.edit(content[i:i+width]) for i in range(0, len(content), width)]
+                )
+
+        result = [
+            sublist + [Item('')] * (max(len(sublist) for sublist in result) - len(sublist)) 
+            for sublist in result
+        ]
+
+        return [list(row) for row in zip(*result)]
+
+
     def add_row(self, items: list):
-        row_items = [Item(str(i).replace('\n', '')) for i in items]
+        row_items = [Item(str(i)) for i in items]
 
         self._rows.append(row_items)
 
@@ -22,17 +66,14 @@ class Table:
         for num, item in enumerate(row_items):
             item_width = len(item.content)
 
-            if item_width > self._col_widths.get(num, 0):
+            if item_width > self._col_widths.get(num, 0) and num not in self._fixed_widths:
                 self._col_widths[num] = item_width
-
-                if item.content.startswith('\033'):
-                    self._col_widths[num] -= 5
 
         max_row_width = max((len(i) for i in self._rows))
 
-        for items in self._rows:
-            if len(items) < max_row_width:
-                items += [Item('')] * (max_row_width - len(items))
+        for row in self._rows:
+            if len(row) < max_row_width:
+                row += [Item('')] * (max_row_width - len(row))
 
     def draw_lines(self):
         lines = []
@@ -42,34 +83,32 @@ class Table:
         ph_c, hz_c, vt_c, cr_c = self._chars
 
         for num_row, row in enumerate(self._rows):
-            line_items = []
-
-            for num_item, item in enumerate(row):
-                content = item.content
-                col_width = self._col_widths.get(num_item, 0)
-                free = max(0, col_width - len(content))
-
-                if item.align == "r":
-                    content = ph_c * free + content
-                elif item.align == "c":
-                    left_padding = free // 2
-                    right_padding = free - left_padding
-                    content = ph_c * left_padding + content + ph_c * right_padding
-                else:
-                    content += ph_c * free
-
-                line_items.append(content)
-
-            line = vt_c + vt_c.join(line_items) + vt_c
-
-            border = cr_c.join(hz_c * len(li) for li in line_items)
+            border = cr_c.join(hz_c * self._col_widths[w] for w in sorted(self._col_widths))
             inner_border = vt_c + border + vt_c
             outer_border = cr_c + border + cr_c
 
             if num_row == 0 and border != "":
                 lines.append(outer_border)
 
-            lines.append(line)
+            for new_row in self._fit_cols(row):
+                line_items = []
+
+                for num_item, item in enumerate(new_row):
+                    content = item.formatted()
+                    free = max(0, self._col_widths.get(num_item, 0) - len(content))
+
+                    if item.align == "r":
+                        content = ph_c * free + content
+                    elif item.align == "c":
+                        left_padding = free // 2
+                        right_padding = free - left_padding
+                        content = ph_c * left_padding + content + ph_c * right_padding
+                    else:
+                        content += ph_c * free
+
+                    line_items.append(content)
+
+                lines.append(vt_c + vt_c.join(line_items) + vt_c)
 
             if num_row + 1 < n_rows and border != "":
                 lines.append(inner_border)
