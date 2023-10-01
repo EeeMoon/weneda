@@ -1,7 +1,5 @@
 import re
 from fontTools.ttLib import TTFont
-import asyncio
-from typing import Coroutine
 
 
 def get_width(text: str, font: str | bytes) -> int:
