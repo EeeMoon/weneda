@@ -1,6 +1,38 @@
-__pycache__
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+
+# Ignore system and IDE-specific files
+__init__.py
+*.pyo
+*.pyd
+.DS_Store
+.vscode/
+.idea/
+*.egg-info/
+*.egg
 dist
-build
-test.py
-venv
-veneda.egg-info
+
+# Ignore virtual environment folders
+venv/
+env/
+virtualenv/
+.venv/
+
+# Ignore sensitive information
+.env
+
+# Ignore database files
+*.sqlite3
+*.db
+
+# Ignore log files
+*.log
+
+# Ignore cached files and directories
+.cache/
+.cached/
+.cache/coverage/
+
+# Ignore git extensions
+git-filter-repo
