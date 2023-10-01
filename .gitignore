@@ -36,3 +36,6 @@ virtualenv/
 
 # Ignore git extensions
 git-filter-repo
+
+# Ignore tests
+main.py
