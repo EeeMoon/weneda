@@ -1,5 +1,7 @@
 import re
 from fontTools.ttLib import TTFont
+import asyncio
+from typing import Coroutine
 
 
 def get_width(text: str, font: str | bytes) -> int:
@@ -78,3 +80,29 @@ def urlify(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
 
 
+async def async_sub(pattern: str, repl: Coroutine, string: str):
+    """
+    Async version of `re.sub()`.
+    """
+    matches = [(match.start(), match.end(), match) for match in re.finditer(pattern, string)]
+
+    if not matches:
+        return string
+
+    parts = []
+    current_pos = 0
+
+    for match_start, match_end, match_group in matches:
+        parts.append(string[current_pos:match_start])
+
+        if asyncio.iscoroutinefunction(repl):
+            replacement = await repl(match_group)
+        else:
+            replacement = repl(match_group)
+
+        parts.append(replacement)
+        current_pos = match_end
+
+    parts.append(string[current_pos:])
+
+    return ''.join(parts)
