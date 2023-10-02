@@ -38,4 +38,5 @@ virtualenv/
 git-filter-repo
 
 # Ignore tests
-main.py
+test.py
+tests/
