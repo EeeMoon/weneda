@@ -53,7 +53,8 @@ def placeholder(li: str = "{", ri: str = "}"):
                 placeholder = match.group(1)
                 replacement = func(placeholder, **kwargs)
 
-                return str(replacement) if replacement else placeholder
+                return (str(replacement).replace(li, '').replace(ri, '') 
+                        if replacement is not None else placeholder)
             
             while True:
                 match = pattern.search(text)
