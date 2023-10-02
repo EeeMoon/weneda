@@ -1,2 +1,2 @@
 # weneda
-Python module for editing and styling a text.
+Python module for editing and styling text.
