@@ -144,26 +144,23 @@ def aplaceholder(li: str = "{", ri: str = "}"):
     return staticmethod(helper)
 
 
-def form(value: int, 
-         singlef: str, 
-         doublef: str, 
-         quintuplef: str):
+def noun_form(amount: int, f1: str, f2to4: str, f5to9: str):
     """
-    Returns a word form based on the amount.
+    Returns a singular or plural form based on the amount.
 
     Attributes
     ----------
-    value: `int`
+    amount: `int`
         Exact amount.
 
-    singlef: `str`
+    f1: `str`
         1 item form.
 
-    doublef: `str`
+    f2to4: `str`
         2-4 items form.
 
-    quintuplef: `str`
-        5-9 items form.
+    f5to9: `str`
+        0, 5-9 items form.
 
     ### Example usage
     ```
@@ -173,21 +170,23 @@ def form(value: int,
     print(f"{count} {text}") # 4 груші
     ```
     """
-    if value < 0:
-        value = -value 
+    amount = abs(amount)
 
-    if value == 1:
-        return singlef
+    if amount == 0:
+        return f5to9
+    
+    if amount == 1:
+        return f1
     
     for i in range(19, 1, -1):
-        if value % 10 == i:
-            if (i >= 2 and i <= 4):
-                return doublef
+        if amount % 10 == i:
+            if (2 <= i and i <= 4):
+                return f2to4
             
-            return quintuplef
+            return f5to9
 
 
-def format_time(seconds: float, pattern: dict, joiner: str = " "):
+def format_time(seconds: float, **kwargs: dict):
     """
     Returns a formatted time string.
 
@@ -196,13 +195,10 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
     seconds: `float`
         Time in seconds.
 
-    pattern: `dict`
-        Time identifier and display string pairs. `{}` will be replaced by actual value.
+    kwargs
+        Time format per indentifier or additional settings.
 
-    joiner: `str`
-        String to join all times by.
-
-    Available keys:
+    Indentifiers:
         - `y` - years
         - `mo` - months
         - `w` - weeks
@@ -211,14 +207,16 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
         - `m` - minutes
         - `s` - seconds
         - `ms` - milliseconds
+    Settings:
+        - `join` - string to join with
 
     ### Example usage
     ```
-    text = format_time(4125, {
-        "d": "!{} дн.", # text will be displayed even if it equals zero
-        "h": "{} год.", # 1 form
-        "m": ("{} хвилина", "{} хвилини", "{} хвилин") # 3 forms
-    })
+    text = format_time(4125, 
+        d="!{} дн.", # text will be displayed even if it equals zero
+        h="{} год.", # 1 form
+        m=("{} хвилина", "{} хвилини", "{} хвилин") # 3 forms (uses noun_form())
+    )
     print(text) # 0 дн. 1 год. 8 хвилин
     ```
     """        
@@ -235,9 +233,10 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
 
     result = {i: 0 for i in values}
     current = seconds
+    joiner = kwargs.get('join', ' ')
 
     for k, v in values.items():
-        if k not in pattern:
+        if k not in kwargs:
             continue
 
         if current > v:
@@ -246,10 +245,11 @@ def format_time(seconds: float, pattern: dict, joiner: str = " "):
 
     display_parts = []
 
-    for key, value in pattern.items():
+    for key, value in kwargs.items():
         if isinstance(value, (tuple, list)):
             if len(value) == 3:
-                value: str = form(result[key], *value)
+                print(result[key])
+                value: str = noun_form(result[key], *value)
             else:
                 raise ValueError(f"{key} must have 3 forms instead of {len(value)}")
             
@@ -274,8 +274,7 @@ def space_between(items: Iterable[str],
     width: `int`
         Container width. Uses relative points that depends on specified font. 
         One character can have `0-64` length.
-        For example, console full-screen window has 10880 width with `font = None`.
-        Discord embed footer has 2340 width with `ggsans font`.
+        For example, console full-screen window has 10880 width if 'font' is `None`.
 
     space: `str`
         Placeholder to use between elements.
