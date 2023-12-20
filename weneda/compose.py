@@ -248,7 +248,6 @@ def format_time(seconds: float, **kwargs: dict):
     for key, value in kwargs.items():
         if isinstance(value, (tuple, list)):
             if len(value) == 3:
-                print(result[key])
                 value: str = noun_form(result[key], *value)
             else:
                 raise ValueError(f"{key} must have 3 forms instead of {len(value)}")
