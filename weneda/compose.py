@@ -172,18 +172,15 @@ def noun_form(amount: int, f1: str, f2to4: str, f5to9: str):
     """
     amount = abs(amount)
 
-    if amount == 0:
-        return f5to9
-    
-    if amount == 1:
+    last_digit = amount % 10
+    second_last_digit = (amount // 10) % 10
+
+    if last_digit == 1 and second_last_digit != 1:
         return f1
-    
-    for i in range(19, 1, -1):
-        if amount % 10 == i:
-            if (2 <= i and i <= 4):
-                return f2to4
-            
-            return f5to9
+    elif 2 <= last_digit <= 4 and second_last_digit != 1:
+        return f2to4
+
+    return f5to9
 
 
 def format_time(seconds: float, **kwargs: dict):
