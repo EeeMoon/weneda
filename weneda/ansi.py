@@ -29,7 +29,7 @@ class FG:
     LIGHT_WHITE = "\033[97m"
 
     @staticmethod
-    def rgb(r: int, g: int, b: int):
+    def rgb(r: int, g: int, b: int) -> str:
         """
         RGB foreground color. Not widely supported.
         """
@@ -67,7 +67,7 @@ class BG:
     LIGHT_WHITE = "\033[107m"
 
     @staticmethod
-    def rgb(r: int, g: int, b: int):
+    def rgb(r: int, g: int, b: int) -> str:
         """
         RGB background color. Not widely supported.
         """
@@ -83,7 +83,7 @@ class ST:
     print(ST.UNDERLINE + "Hello World" + ST.RESET)
     ```
     """
-    
+
     RESET = "\033[0m"
     BOLD = "\033[1m"
     ITALIC = "\033[3m"
@@ -100,26 +100,26 @@ class MV:
     """
 
     @staticmethod
-    def up(n: int):
+    def up(n: int) -> str:
         "Move cursor up by `n` lines."
         return f"\033[{n}A"
 
     @staticmethod
-    def down(n: int):
+    def down(n: int) -> str:
         "Move cursor down by `n` lines."
         return f"\033[{n}B"
 
     @staticmethod
-    def right(n: int):
+    def right(n: int) -> str:
         "Move cursor right by `n` lines."
         return f"\033[{n}C"
 
     @staticmethod
-    def left(n: int):
+    def left(n: int) -> str:
         "Move cursor left by `n` lines."
         return f"\033[{n}D"
 
     @staticmethod
-    def pos(x: int, y: int):
+    def pos(x: int, y: int) -> str:
         "Move cursor to specific `x`, `y` position."
         return f"\033[{x};{y}H"
