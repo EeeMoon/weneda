@@ -7,21 +7,22 @@ from .utils import get_width
 def placeholder(opener: str = "{", closer: str = "}"):
     """
     Decorator that transforms a function or coroutine into a placeholder formatter.
+    Function can have as many `args` and `kwargs` you want, 
+    but first argument must be a placeholder string.
 
     Attributes
     ----------
     opener: `str`
         Identifies a placeholder start.
-
     closer: `str`
         Identifies a placeholder end.
 
     ### Example usage
     ```
     @placeholder()
-    def greetings(ph: str, **kwargs) -> str:
+    def greetings(ph: str, *, name: str | None = None) -> str:
         if ph == "name":
-            return kwargs.get("name", default="someone")
+            return name or "someone"
         if ph == "day":
             return "Monday"
 
@@ -37,10 +38,12 @@ def placeholder(opener: str = "{", closer: str = "}"):
     closer_len = len(closer)
 
     def helper(func):
-        is_method = '.' in func.__qualname__
-
         @functools.wraps(func)
         async def wrapper(*args, **kwargs) -> str:
+            is_method = True
+            if isinstance(args[0], str):
+                is_method = False
+
             text: str = args[1] if is_method else args[0]
             stack = []
             index = 0
@@ -54,10 +57,7 @@ def placeholder(opener: str = "{", closer: str = "}"):
                         start_index = stack.pop()
                         ph = text[start_index + opener_len : index]
 
-                        if is_method:
-                            value = func(args[0], ph, **kwargs)
-                        else:
-                            value = func(ph, **kwargs)
+                        value = func(ph, *args[2 if is_method else 1:], **kwargs)
                         if inspect.iscoroutinefunction(func):
                             value = await value
 
@@ -85,13 +85,10 @@ def noun_form(amount: float, f1: str, f2to4: str, f5to9: str):
     ----------
     amount: `float`
         Exact amount.
-
     f1: `str`
         1 item form.
-
     f2to4: `str`
         2-4 items form. This also will be returned if amount is `float`.
-
     f5to9: `str`
         0, 5-9 items form.
 
@@ -127,7 +124,6 @@ def strfseconds(seconds: float, *, join: str = " ", **periods: str):
     ----------
     seconds: `float`
         Time in seconds.
-
     **periods
         Identifier: format pairs.
 
@@ -202,17 +198,14 @@ def space_between(
 
     Attributes
     ----------
-    items: `Iterable[str]`
-        List of strings.
-        
+    *items: `str`
+        Strings to join.
     width: `int`
         Container width. Uses relative points that depends on specified font. 
         One character can have `0-64` length.
         For example, console full-screen window has 10880 width if 'font' is `None`.
-
     space: `str`
         Placeholder to use between elements.
-
     font: `str` | `bytes` | `None`
         Font name or bytes-like object.
         If `None`, all characters will have width of 64 (monospace font).
@@ -228,3 +221,30 @@ def space_between(
     return (space * empty_width).join(items)
 
 
+def crop(text: str, font: str | bytes, width: int, placeholder: str = "..."):
+    """
+    Crop text if it exceeds the width limit.
+
+    Attributes
+    ----------
+    text: `str`
+        String to trim.
+    font: `str` | `bytes`
+        Font name or bytes-like object.
+    width: `int`
+        Max text width.
+    placeholder: `str`
+        String to add to the end of the text if it goes beyond.
+    """
+    text_width = get_width(text, font)
+    ph_width = get_width(placeholder, font)
+    result = text
+    
+    while text_width + ph_width > width and width > 0:
+        result = result[:-1]
+        text_width = get_width(result, font)
+
+    if text == result:
+        placeholder = ""
+
+    return result + placeholder

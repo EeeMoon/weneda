@@ -67,32 +67,3 @@ def urlify(text: str) -> str:
         String to format.
     """
     return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
-
-
-def crop(text: str, font: str | bytes, width: int, placeholder: str = "..."):
-    """
-    Crop text if it exceeds the width limit.
-
-    Attributes
-    ----------
-    text: `str`
-        String to trim.
-    font: `str` | `bytes`
-        Font name or bytes-like object.
-    width: `int`
-        Max text width.
-    placeholder: `str`
-        String to add to the end of the text if it goes beyond.
-    """
-    text_width = get_width(text, font)
-    ph_width = get_width(placeholder, font)
-    result = text
-    
-    while text_width + ph_width > width and width > 0:
-        result = result[:-1]
-        text_width = get_width(result, font)
-
-    if text == result:
-        placeholder = ""
-
-    return result + placeholder
