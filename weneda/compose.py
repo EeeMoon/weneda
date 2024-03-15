@@ -44,26 +44,36 @@ def placeholder(opener: str = "{", closer: str = "}"):
             if isinstance(args[0], str):
                 is_method = False
 
+            # first argument can be self
             text: str = args[1] if is_method else args[0]
             stack = []
+            cache = {}
             index = 0
 
             while index < len(text):
                 if text[index : index + opener_len] == opener:
+                    # track open braces
                     stack.append(index)
                     index += opener_len
                 elif text[index : index + closer_len] == closer:
+                    # are there open braces?
                     if stack:
                         start_index = stack.pop()
                         ph = text[start_index + opener_len : index]
-
-                        value = func(ph, *args[2 if is_method else 1:], **kwargs)
-                        if inspect.iscoroutinefunction(func):
-                            value = await value
-
-                        replacement = str(value) if value is not None else opener + ph + closer
+                        
+                        # get placeholder value from cache if persist
+                        replacement = cache.get(ph)
+                        if replacement is None:
+                            value = func(ph, *args[2 if is_method else 1:], **kwargs)
+                            if inspect.iscoroutinefunction(func):
+                                value = await value
+                            
+                            # if value is None keep placeholder
+                            replacement = str(value) if value is not None else opener + ph + closer
+                            cache[ph] = replacement
+                        
+                        # replace actual placeholder
                         text = text[:start_index] + replacement + text[index + closer_len:]
-
                         index = start_index + len(replacement)
                     else:
                         index += closer_len
