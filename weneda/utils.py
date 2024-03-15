@@ -4,13 +4,12 @@ from fontTools.ttLib import TTFont
 
 def get_width(text: str, font: str | bytes) -> int:
     """
-    Returns a text width for given font with size of 64 px.
+    Return a text width for given font with size of 64 px.
 
     Attributes
     ----------
     string: `str`
         Text to calculate length.
-        
     font: `str` | `bytes`
         Font name or bytes-like object.
     """
@@ -25,13 +24,12 @@ def get_width(text: str, font: str | bytes) -> int:
 
 def has_glyph(char: chr, font: str | bytes) -> bool:
     """
-    Checks if the font has a glyph for the character.
+    Check if the font has a glyph for the character.
 
     Attributes
     ----------
     character: `chr`
         Character to check.
-
     font: `str` | `bytes`
         Font name or bytes-like object.
     """
@@ -43,7 +41,7 @@ def has_glyph(char: chr, font: str | bytes) -> bool:
 
 def fix_display(text: str, font: str, placeholder: chr = "?") -> str:
     """
-    Replaces unsupported characters by font with placeholder.
+    Replace unsupported characters by font with placeholder.
 
     Atrtibutes
     ----------
@@ -61,18 +59,40 @@ def fix_display(text: str, font: str, placeholder: chr = "?") -> str:
 
 def urlify(text: str) -> str:
     """
-    Converts the string to readable URL version.
+    Convert the string to readable URL version.
 
     Attributes
     ----------
     text: `str`
         String to format.
-
-    ### Example usage
-    ```
-    text = urlify("Hello, world!")
-
-    print(text) # hello-world
-    ```
     """
     return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
+
+
+def crop(text: str, font: str | bytes, width: int, placeholder: str = "..."):
+    """
+    Crop text if it exceeds the width limit.
+
+    Attributes
+    ----------
+    text: `str`
+        String to trim.
+    font: `str` | `bytes`
+        Font name or bytes-like object.
+    width: `int`
+        Max text width.
+    placeholder: `str`
+        String to add to the end of the text if it goes beyond.
+    """
+    text_width = get_width(text, font)
+    ph_width = get_width(placeholder, font)
+    result = text
+    
+    while text_width + ph_width > width and width > 0:
+        result = result[:-1]
+        text_width = get_width(result, font)
+
+    if text == result:
+        placeholder = ""
+
+    return result + placeholder
