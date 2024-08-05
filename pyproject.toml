@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "weneda"
 version = "0.1.1"
-homepage = "https://github.com/EeeMoon/weneda"
+homepage = "https://github.com/eeemoon/weneda"
 description = "Module for editing and styling text."
 authors = ["EeeMoon"]
 license = "MIT"
