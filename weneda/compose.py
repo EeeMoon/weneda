@@ -8,12 +8,12 @@ class Placeholder:
     ### Example usage
     ```
     class MyPlaceholder(Placeholder):
-        async def replace(self, placeholder: str, depth: int) -> str:
+        async def process(self, placeholder: str, depth: int) -> str:
             if placeholder.startswith('upper_'):
                 return placeholder.removeprefix('upper_').upper()
             
     ph = MyPlaceholder()
-    await ph.process("{upper_hello}") # HELLO
+    await ph.replace("{upper_hello}") # HELLO
     ```
     """
     def __init__(self, opener: str = '{', closer: str = '}') -> None:
@@ -75,7 +75,7 @@ class Placeholder:
                     # get placeholder value from cache if exist
                     replacement = cache.get(ph)
                     if replacement is None:
-                        value = await self.replace(ph, len(stack))
+                        value = await self.process(ph, len(stack))
          
                         # if value is None keep placeholder
                         replacement = (
