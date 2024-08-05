@@ -33,9 +33,9 @@ class Placeholder:
         self.opener: str = opener
         self.closer: str = closer
 
-    async def replace(self, placeholder: str, depth: int) -> str:
+    async def process(self, placeholder: str, depth: int) -> str:
         """
-        Replace the placeholder with the value.
+        Get the placeholder value.
 
         Parameters
         ----------
@@ -46,9 +46,9 @@ class Placeholder:
         """
         raise NotImplementedError()
 
-    async def process(self, text: str) -> str:
+    async def replace(self, text: str) -> str:
         """
-        Process a text with placeholders.
+        Replace placeholders in the text.
 
         Parameters
         ----------
