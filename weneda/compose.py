@@ -12,7 +12,6 @@ class Placeholder:
             if placeholder.startswith('upper_'):
                 return placeholder.removeprefix('upper_').upper()
             
-
     ph = MyPlaceholder()
     await ph.process("{upper_hello}") # HELLO
     ```
@@ -26,6 +25,11 @@ class Placeholder:
         closer: `str`
             Right placeholder identifier.
         """
+        if not isinstance(opener, str) or not opener:
+            raise ValueError("'opener' should be a non-empty string")
+        if not isinstance(closer, str) or not closer:
+            raise ValueError("'closer' should be a non-empty string")
+        
         self.opener: str = opener
         self.closer: str = closer
 
