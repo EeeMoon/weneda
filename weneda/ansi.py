@@ -1,6 +1,7 @@
 class FG:
     """
-    Adds foreground color to text. Shows in ANSI-supported environments (terminal, Discord embeds).
+    Adds foreground color to text. 
+    Shows in ANSI-supported environments (terminal, Discord embeds).
 
     ### Example usage
     ```
@@ -30,15 +31,14 @@ class FG:
 
     @staticmethod
     def rgb(r: int, g: int, b: int) -> str:
-        """
-        RGB foreground color. Not widely supported.
-        """
+        """RGB foreground color. Not widely supported."""
         return f"\033[38;2;{r};{g};{b}m"
 
 
 class BG:
     """
-    Adds background color to text. Shows in ANSI-supported environments (terminal, Discord embeds).
+    Adds background color to text. 
+    Shows in ANSI-supported environments (terminal, Discord embeds).
 
     ### Example usage
     ```
@@ -68,15 +68,14 @@ class BG:
 
     @staticmethod
     def rgb(r: int, g: int, b: int) -> str:
-        """
-        RGB background color. Not widely supported.
-        """
+        """RGB background color. Not widely supported."""
         return f"\033[48;2;{r};{g};{b}m"
 
 
 class ST:
     """
-    Adds some style to text. Shows in ANSI-supported environments (terminal, Discord embeds).
+    Adds some style to text. 
+    Shows in ANSI-supported environments (terminal, Discord embeds).
 
     ### Example usage
     ```
@@ -95,9 +94,7 @@ class ST:
 
 
 class MV:
-    """
-    Moves cursor.
-    """
+    """Moves cursor."""
 
     @staticmethod
     def up(n: int) -> str:

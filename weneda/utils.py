@@ -6,7 +6,7 @@ def get_width(text: str, font: str | bytes) -> int:
     """
     Return a text width for given font with size of 64 px.
 
-    Attributes
+    Parameters
     ----------
     string: `str`
         Text to calculate length.
@@ -26,7 +26,7 @@ def has_glyph(char: chr, font: str | bytes) -> bool:
     """
     Check if the font has a glyph for the character.
 
-    Attributes
+    Parameters
     ----------
     character: `chr`
         Character to check.
@@ -43,7 +43,7 @@ def fix_display(text: str, font: str, placeholder: chr = "?") -> str:
     """
     Replace unsupported characters by font with placeholder.
 
-    Atrtibutes
+    Parameters
     ----------
     text: `str`
         String to validate.
@@ -61,7 +61,7 @@ def urlify(text: str) -> str:
     """
     Convert the string to readable URL version.
 
-    Attributes
+    Parameters
     ----------
     text: `str`
         String to format.

@@ -1,97 +1,102 @@
-import inspect
-import functools
-
 from .utils import get_width
 
 
-def placeholder(opener: str = "{", closer: str = "}"):
+class Placeholder:
     """
-    Decorator that transforms a function or coroutine into a placeholder formatter.
-    Function can have as many `args` and `kwargs` you want, 
-    but first argument must be a placeholder string.
-
-    Attributes
-    ----------
-    opener: `str`
-        Identifies a placeholder start.
-    closer: `str`
-        Identifies a placeholder end.
+    Base class for placeholders.
 
     ### Example usage
     ```
-    @placeholder()
-    def greetings(ph: str, *, name: str | None = None) -> str:
-        if ph == "name":
-            return name or "someone"
-        if ph == "day":
-            return "Monday"
+    class MyPlaceholder(Placeholder):
+        async def replace(self, placeholder: str, depth: int) -> str:
+            if placeholder.startswith('upper_'):
+                return placeholder.removeprefix('upper_').upper()
+            
 
-    text = greetings("Hello, {name}! Today is {day}!", name="Alex")
-
-    print(text) # Hello, Alex! Today is Monday!
+    ph = MyPlaceholder()
+    await ph.process("{upper_hello}") # HELLO
     ```
     """
-    if not isinstance(opener, str) or not isinstance(closer, str):
-        raise ValueError("identifiers must be of type 'str'")
+    def __init__(self, opener: str = '{', closer: str = '}') -> None:
+        """
+        Parameters
+        ----------
+        opener: `str`
+            Left placeholder identifier.
+        closer: `str`
+            Right placeholder identifier.
+        """
+        self.opener: str = opener
+        self.closer: str = closer
 
-    opener_len = len(opener)
-    closer_len = len(closer)
+    async def replace(self, placeholder: str, depth: int) -> str:
+        """
+        Replace the placeholder with the value.
 
-    def helper(func):
-        @functools.wraps(func)
-        async def wrapper(*args, **kwargs) -> str:
-            is_method = True
-            if isinstance(args[0], str):
-                is_method = False
+        Parameters
+        ----------
+        placeholder: `str`
+            Placeholder without identifiers.
+        depth: `int`
+            Nested level. Starts with `0`. 
+        """
+        raise NotImplementedError()
 
-            # first argument can be self
-            text: str = args[1] if is_method else args[0]
-            stack = []
-            cache = {}
-            index = 0
+    async def process(self, text: str) -> str:
+        """
+        Process a text with placeholders.
 
-            while index < len(text):
-                if text[index : index + opener_len] == opener:
-                    # track open braces
-                    stack.append(index)
-                    index += opener_len
-                elif text[index : index + closer_len] == closer:
-                    # are there open braces?
-                    if stack:
-                        start_index = stack.pop()
-                        ph = text[start_index + opener_len : index]
-                        
-                        # get placeholder value from cache if persist
-                        replacement = cache.get(ph)
-                        if replacement is None:
-                            value = func(ph, *args[2 if is_method else 1:], **kwargs)
-                            if inspect.iscoroutinefunction(func):
-                                value = await value
-                            
-                            # if value is None keep placeholder
-                            replacement = str(value) if value is not None else opener + ph + closer
-                            cache[ph] = replacement
-                        
-                        # replace actual placeholder
-                        text = text[:start_index] + replacement + text[index + closer_len:]
-                        index = start_index + len(replacement)
-                    else:
-                        index += closer_len
+        Parameters
+        ----------
+        text: `str`
+            Text.
+        """
+        opener_len = len(self.opener)
+        closer_len = len(self.closer)
+
+        stack = []
+        cache = {}
+        index = 0
+        while index < len(text):
+            if text[index : index + opener_len] == self.opener:
+                # track open braces
+                stack.append(index)
+                index += opener_len
+            elif text[index : index + closer_len] == self.closer:
+                # are there open braces?
+                if stack:
+                    start_index = stack.pop()
+                    ph = text[start_index + opener_len : index]
+                    
+                    # get placeholder value from cache if exist
+                    replacement = cache.get(ph)
+                    if replacement is None:
+                        value = await self.replace(ph, len(stack))
+         
+                        # if value is None keep placeholder
+                        replacement = (
+                            str(value) 
+                            if value is not None else 
+                            self.opener + ph + self.closer
+                        )
+                        cache[ph] = replacement
+                    
+                    # replace actual placeholder
+                    text = text[:start_index] + replacement + text[index + closer_len:]
+                    index = start_index + len(replacement)
                 else:
-                    index += 1
+                    index += closer_len
+            else:
+                index += 1
 
-            return text
-
-        return wrapper
-
-    return helper
+        return text
 
 
-def noun_form(amount: float, f1: str, f2to4: str, f5to9: str):
+def noun_form(amount: float, f1: str, f2to4: str, f5to9: str) -> str:
     """
     Returns a singular or plural form based on the amount.
 
-    Attributes
+    Parameters
     ----------
     amount: `float`
         Exact amount.
@@ -100,7 +105,7 @@ def noun_form(amount: float, f1: str, f2to4: str, f5to9: str):
     f2to4: `str`
         2-4 items form. This also will be returned if amount is `float`.
     f5to9: `str`
-        0, 5-9 items form.
+        0 and 5-9 items form.
 
     ### Example usage
     ```
@@ -126,73 +131,76 @@ def noun_form(amount: float, f1: str, f2to4: str, f5to9: str):
     return f5to9
 
 
-def strfseconds(seconds: float, *, join: str = " ", **periods: str):
+def strfseconds(
+    seconds: float, 
+    *, 
+    join: str = " ", 
+    required: tuple[str] = (),
+    empty: str = "",
+    **periods: str | tuple[str],
+) -> str:
     """
     Returns a formatted time string.
 
-    Attributes
+    Parameters
     ----------
     seconds: `float`
         Time in seconds.
-    **periods
-        Identifier: format pairs.
-
-    Indentifiers:
-        - `y` - years
-        - `mo` - months
-        - `w` - weeks
-        - `d` - days
-        - `h` - hours
-        - `m` - minutes
-        - `s` - seconds
-        - `ms` - milliseconds
+    join: `str`
+        String joiner.
+    required: `tuple[str]`
+        Identifiers that will be displayed even if they equal zero.
+    **periods: `str` | `tuple[str]`
+        Period formats. If `tuple`, uses `noun_form`. Identifier can be either
+        `y`, `mo`, `w`, `d`, `h`, `m`, `s`, `ms`.
 
     ### Example usage
     ```
     text = strfseconds(
         4125, 
-        # text will be displayed even if it equals zero
-        d="!{} дн.", 
+        required=('d'),
+        empty="0 год.",
+        d="{} дн.", 
         h="{} год.",
-        # equals to noun_form(minutes, "{} хвилина", "{} хвилини", "{} хвилин")
+        # uses noun_form(minutes, "{} хвилина", "{} хвилини", "{} хвилин")
         m=("{} хвилина", "{} хвилини", "{} хвилин") 
     )
     print(text) # 0 дн. 1 год. 8 хвилин
     ```
     """        
-    values = {
-        "y": 31_556_952,
-        "mo": 2_629_746,
-        "w": 608_400,
-        "d": 86_400,
-        "h": 3_600,
-        "m": 60,
-        "s": 1,
-        "ms": 0.001
+    weights = {
+        'y': 31_556_952,
+        'mo': 2_629_746,
+        'w': 608_400,
+        'd': 86_400,
+        'h': 3_600,
+        'm': 60,
+        's': 1,
+        'ms': 0.001
     }
-
-    result = {i: 0 for i in values}
+    result = {i: 0 for i in weights}
     current = seconds
-
-    for k, v in values.items():
-        if k not in periods:
+    for identifier, weight in weights.items():
+        if identifier not in periods:
             continue
 
-        if current > v:
-            result[k] = int(current / v)
-            current %= v
+        if current > weight:
+            result[identifier] = int(current / weight)
+            current %= weight
 
     display_parts = []
-
     for key, value in periods.items():
         if isinstance(value, (tuple, list)):
             if len(value) == 3:
-                value: str = noun_form(result[key], *value)
+                value = noun_form(result[key], *value)
             else:
-                raise ValueError(f"{key} must have 3 forms instead of {len(value)}")
+                raise ValueError(f"'{key}' must have 3 forms instead of {len(value)}")
             
-        if key in result and (result[key] != 0 or value.startswith("!")):
-            display_parts.append(value.removeprefix("!").replace("{}", str(result[key])))
+        if key in result and (key in required or result[key] != 0):
+            display_parts.append(value.replace('{}', str(result[key])))
+    
+    if not display_parts:
+        return empty
 
     return join.join(display_parts)
 
@@ -202,18 +210,18 @@ def space_between(
     width: int = 2340, 
     space: str = " ", 
     font: str | bytes | None = None
-):
+) -> str:
     """
     Distributes space between the strings. Works as CSS `space-between`.
 
-    Attributes
+    Parameters
     ----------
     *items: `str`
         Strings to join.
     width: `int`
         Container width. Uses relative points that depends on specified font. 
         One character can have `0-64` length.
-        For example, console full-screen window has 10880 width if 'font' is `None`.
+        For example, full-screen console window has 10880 width if 'font' is `None`.
     space: `str`
         Placeholder to use between elements.
     font: `str` | `bytes` | `None`
@@ -231,11 +239,16 @@ def space_between(
     return (space * empty_width).join(items)
 
 
-def crop(text: str, font: str | bytes, width: int, placeholder: str = "..."):
+def crop(
+    text: str, 
+    font: str | bytes, 
+    width: int, 
+    placeholder: str = "..."
+) -> str:
     """
     Crop text if it exceeds the width limit.
 
-    Attributes
+    Parameters
     ----------
     text: `str`
         String to trim.
