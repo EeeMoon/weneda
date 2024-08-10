@@ -1,4 +1,4 @@
 """Module for editing and styling text."""
 
-from .ansi import *
 from .compose import *
+from .placeholders import *
