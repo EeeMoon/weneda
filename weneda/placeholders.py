@@ -7,19 +7,45 @@ PlaceholderFuncType = Callable[[Any, str, int], Coroutine[Any, Any, str]]
 
 
 class Placeholder:
+    """
+    Placeholder handler.
+
+    Parameters
+    ----------
+    name: `str` | `None`
+        Name of the placeholder. If `None`, equals to function name.
+    syntax: `str` | `None`
+        Human-readable usage hint.
+    pattern: `str` | `None`
+        Regex pattern to match placeholder. If `None`, match any string.
+    """
+
     def __init__(
         self, 
         *, 
         name: str, 
         syntax: str | None, 
-        regex: str | None
+        pattern: str | None
     ) -> None:
         self.formatter: Formatter | None = None
         self.name: str = name
         self.syntax: str | None = syntax
-        self.pattern: re.Pattern | None = re.compile(regex) if regex else None
+        self.pattern: re.Pattern | None = re.compile(pattern) if pattern else None
+
+    def __str__(self) -> str:
+        return self.syntax or self.name
     
     async def process(self, name: str, depth: int) -> str:
+        """
+        Get a value from the placeholder.
+
+        Parameters
+        ----------
+        name: `str`
+            Name of the placeholder.
+        depth: `int`
+            Nesting level. 
+        """
         return None
 
 
@@ -27,13 +53,25 @@ def placeholder(
     *, 
     name: str | None = None,
     syntax: str | None = None, 
-    regex: str | None = None
+    pattern: str | None = None
 ) -> Callable[[PlaceholderFuncType], Placeholder]:
+    """
+    Register method as formatter placeholder.
+
+    Parameters
+    ----------
+    name: `str` | `None`
+        Name of the placeholder. If `None`, equals to function name.
+    syntax: `str` | `None`
+        Human-readable usage hint.
+    pattern: `str` | `None`
+        Regex pattern to match placeholder. If `None`, match any string.
+    """
     def helper(func: PlaceholderFuncType) -> Placeholder:
         func.__placeholder_args__ = {
             'name': name if name is not None else func.__name__,
             'syntax': syntax,
-            'regex': regex
+            'pattern': pattern
         }
         return func
 
@@ -42,8 +80,35 @@ def placeholder(
 
 class Formatter:
     """
-    Base class for placeholder formatters.
+    Placeholder formatter.
+
+    Parameters
+    ----------
+    opener: `str`
+        Left placeholder identifier.
+    closer: `str`
+        Right placeholder identifier.
+    escape: `str`
+        Escape string. 
+        If opener or closer follows it, they are not identified.
+
+    Examples
+    --------
+    >>> class CountFormatter(Formatter):
+    ...     def __init__(self, count: int) -> None:
+    ...         super().__init__()
+    ...
+    ...         self.count: int = count
+    ...
+    ...     @placeholder(name='count', pattern="^count$")
+    ...     async def count_handler(self, ph: str, depth: int) -> str:
+    ...         return str(self.count)
+    ...
+    >>> formatter = CountFormatter(5)
+    >>> await formatter.format("Count is {count}")
+    'Count is 5'
     """
+
     def __init_subclass__(cls) -> None:
         cls.__placeholder_items__ = [
             member
@@ -59,17 +124,6 @@ class Formatter:
         *,
         escape: str | None = '\\'
     ) -> None:
-        """
-        Parameters
-        ----------
-        opener: `str`
-            Left placeholder identifier.
-        closer: `str`
-            Right placeholder identifier.
-        escape: `str`
-            Escape string. 
-            If opener or closer follows it, they are not identified.
-        """
         if not isinstance(opener, str) or not opener:
             raise ValueError("'opener' should be a non-empty string")
         if not isinstance(closer, str) or not closer:
@@ -86,9 +140,18 @@ class Formatter:
         for func in self.__placeholder_items__:
             ph = Placeholder(**func.__placeholder_args__)
             ph.process = partial(func, self)
+            ph.formatter = self
             self.placeholders.append(ph) 
     
     def add_placeholder(self, ph: Placeholder, /) -> None:
+        """
+        Add placeholder handler.
+
+        Parameters
+        ----------
+        ph: `Placeholder`
+            Placeholder.
+        """
         if not isinstance(ph, Placeholder):
             raise TypeError(
                 f"Expected {Placeholder.__name__!r}, not {ph.__class__!r}"
@@ -98,9 +161,19 @@ class Formatter:
         self.placeholders.append(ph)
 
     async def process(self, name: str, depth: int) -> str | None:
+        """
+        Get a value from the first matched placeholder.
+
+        Parameters
+        ----------
+        name: `str`
+            Name of the placeholder.
+        depth: `int`
+            Nesting level.
+        """
         for ph in self.placeholders:
             if ph.pattern is None or ph.pattern.match(name):
-                return await ph.func(name, depth)
+                return await ph.process(name, depth)
         
         return None
 

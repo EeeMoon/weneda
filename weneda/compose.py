@@ -1,3 +1,5 @@
+from typing import Any
+
 from .utils import get_width
 
 
@@ -16,18 +18,15 @@ def noun_form(amount: float, f1: str, f2to4: str, f5to9: str) -> str:
     f5to9: `str`
         0 and 5-9 items form.
 
-    ### Example usage
-    ```
-    count = 4
-    text = form(count, "груша", "груші", "груш")
-
-    print(f"{count} {text}") # 4 груші
-    ```
+    Examples
+    --------
+    >>> count = 4
+    >>> text = noun_form(count, "груша", "груші", "груш")
+    >>> f"{count} {text}"
+    '4 груші'
     """
     if not isinstance(amount, int):
         return f2to4
-    
-    amount = abs(amount)
 
     last_digit = amount % 10
     second_last_digit = (amount // 10) % 10
@@ -45,7 +44,7 @@ def strfseconds(
     *, 
     join: str = " ", 
     required: tuple[str] = (),
-    empty: str = "",
+    default: Any = None,
     **periods: str | tuple[str],
 ) -> str:
     """
@@ -59,23 +58,24 @@ def strfseconds(
         String joiner.
     required: `tuple[str]`
         Identifiers that will be displayed even if they equal zero.
+    default: `str`
+        Default value if no identifier was used.
     **periods: `str` | `tuple[str]`
         Period formats. If `tuple`, uses `noun_form`. Identifier can be either
         `y`, `mo`, `w`, `d`, `h`, `m`, `s`, `ms`.
 
-    ### Example usage
-    ```
-    text = strfseconds(
-        4125, 
-        required=('d'),
-        empty="0 год.",
-        d="{} дн.", 
-        h="{} год.",
-        # uses noun_form(minutes, "{} хвилина", "{} хвилини", "{} хвилин")
-        m=("{} хвилина", "{} хвилини", "{} хвилин") 
-    )
-    print(text) # 0 дн. 1 год. 8 хвилин
-    ```
+    Examples
+    --------
+    >>> strfseconds(
+    ...     4125, 
+    ...     required=('d'),
+    ...     default="0 год.",
+    ...     d="{} дн.", 
+    ...     h="{} год.",
+    ...     # use 'noun_form' function
+    ...     m=("{} хвилина", "{} хвилини", "{} хвилин") 
+    ... )
+    '0 дн. 1 год. 8 хвилин'
     """        
     weights = {
         'y': 31_556_952,
@@ -103,13 +103,13 @@ def strfseconds(
             if len(value) == 3:
                 value = noun_form(result[key], *value)
             else:
-                raise ValueError(f"'{key}' must have 3 forms instead of {len(value)}")
+                raise ValueError(f"'{key}' should have 3 values")
             
         if key in result and (key in required or result[key] != 0):
             display_parts.append(value.replace('{}', str(result[key])))
     
     if not display_parts:
-        return empty
+        return default
 
     return join.join(display_parts)
 
