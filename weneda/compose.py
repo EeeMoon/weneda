@@ -1,7 +1,7 @@
 from typing import Any
 from functools import partial
 
-from .utils import get_width, has_glyph
+from .font import get_width, has_glyph
 
 
 def noun_form(
