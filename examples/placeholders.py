@@ -1,25 +1,78 @@
 import asyncio
-from weneda import Placeholder
+from colorama import Fore, init
+from weneda import Formatter, placeholder, PlaceholderData
 
 
+class MyFormatter(Formatter):
+    @placeholder(
+        name="upper",
+        syntax="upper_<text>",
+        pattern=r"upper_(?P<text>.*)"
+    )
+    async def upper_handler(self, text: str) -> str:
+        return text.upper()
+    
+    @placeholder(
+        name="repeat",
+        syntax="repeat_<num>_<text>",
+        pattern=r"repeat_(?P<num>\d+)_(?P<text>.*)"
+    )
+    async def repeat_handler(self, num: int, text: str) -> str:
+        return text * num
+    
+    @placeholder(
+        name="join",
+        syntax="join_<joiner>_<text>_<text>_...",
+        pattern=r"join_(?P<joiner>[^_]+)_(?P<text>.*)"
+    )
+    async def join_handler(self, joiner: str, text: str) -> str:
+        return joiner.join(text.split('_'))
 
-class MyPlaceholder(Placeholder):
-    async def process(self, placeholder: str, depth: int) -> str:
-        if placeholder.startswith('upper_'):
-            return placeholder.removeprefix('upper_').upper()
-        if placeholder == 'name':
-            return "Alex"
-        
 
-async def main():
-    # Example 1: Basic usage
-    ph = MyPlaceholder()
-    print(await ph.replace("{upper_{name}}"))
+class ColorFormatter(Formatter):
+    def __init__(self) -> None:
+        super().__init__()
 
-    # Example 2: Custom identifiers
-    custom = MyPlaceholder('$[', ']')
-    print(await custom.replace("$[upper_$[name]]"))
+        self.colors = [Fore.YELLOW, Fore.MAGENTA, Fore.BLUE]
+
+    @placeholder(name="color")
+    async def color_handler(self, data: PlaceholderData) -> str:
+        raw = data.raw
+        depth = data.depth
+        color = self.colors[depth % len(self.colors)] 
+        last_color = (
+            Fore.RESET 
+            if depth == 0 else 
+            self.colors[(depth-1) % len(self.colors)]
+        )
+
+        return ''.join((
+            color,
+            self.opener,
+            raw,
+            color,
+            self.closer,
+            last_color
+        ))
 
 
-if __name__ == '__main__':
+async def main() -> None:
+    init()
+
+    my_formatter = MyFormatter()
+    color_formatter = ColorFormatter()
+
+    texts = [
+        ("Upper: {upper_hello}", my_formatter),
+        ("Repeat: {repeat_5_{upper_world}}", my_formatter),
+        ("Join: {join_!_{repeat_2_{upper_world}}_{repeat_2_{upper_world}}}", my_formatter),
+        ("Color: {join_!_{repeat_2_{upper_world}}_{repeat_2_{upper_world}}}", color_formatter)
+    ]
+
+    for text, formatter in texts:
+        res = await formatter.format(text)
+        print(res)
+
+
+if __name__ == '__main__':    
     asyncio.run(main())
