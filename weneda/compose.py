@@ -1,22 +1,28 @@
 from typing import Any
+from functools import partial
 
-from .utils import get_width
+from .utils import get_width, has_glyph
 
 
-def noun_form(amount: float, f1: str, f2to4: str, f5to9: str) -> str:
+def noun_form(
+    amount: int | float, 
+    f1: str, 
+    f2to4: str, 
+    f5to9: str | None = None
+) -> str:
     """
     Returns a singular or plural form based on the amount.
 
     Parameters
     ----------
-    amount: `float`
+    amount: `int` | `float`
         Exact amount.
     f1: `str`
         1 item form.
     f2to4: `str`
-        2-4 items form. This also will be returned if amount is `float`.
-    f5to9: `str`
-        0 and 5-9 items form.
+        2-4 items form. This will also be returned if amount is `float`.
+    f5to9: `str` | `None`
+        0 and 5-9 items form. If `None`, equals to `f2to4`.
 
     Examples
     --------
@@ -27,6 +33,9 @@ def noun_form(amount: float, f1: str, f2to4: str, f5to9: str) -> str:
     """
     if not isinstance(amount, int):
         return f2to4
+    
+    if f5to9 is None:
+        f5to9 = f2to4
 
     last_digit = amount % 10
     second_last_digit = (amount // 10) % 10
@@ -135,7 +144,7 @@ def space_between(
         Placeholder to use between elements.
     font: `str` | `bytes` | `None`
         Font name or bytes-like object.
-        If `None`, all characters will have width of 64 (monospace font).
+        If `None`, all characters will have the width of 64 (monospace font).
     """
     if len(items) == 1:
         return items[0]
@@ -150,8 +159,8 @@ def space_between(
 
 def crop(
     text: str, 
-    font: str | bytes, 
     width: int, 
+    font: str | bytes | None = None, 
     placeholder: str = "..."
 ) -> str:
     """
@@ -161,22 +170,59 @@ def crop(
     ----------
     text: `str`
         String to trim.
-    font: `str` | `bytes`
-        Font name or bytes-like object.
+    font: `str` | `bytes` | `None`
+        Font name or bytes-like object. 
+        If `None`, `width` should be character count, not pixels.
     width: `int`
         Max text width.
     placeholder: `str`
         String to add to the end of the text if it goes beyond.
     """
-    text_width = get_width(text, font)
-    ph_width = get_width(placeholder, font)
-    result = text
+    _get_width = (
+        partial(get_width, font=font) 
+        if font else 
+        lambda x: len(x)
+    )
+    text_width = _get_width(text, font)
+    ph_width = _get_width(placeholder, font)
+    current = text
     
     while text_width + ph_width > width and width > 0:
-        result = result[:-1]
-        text_width = get_width(result, font)
+        current = current[:-1]
+        text_width = _get_width(current, font)
 
-    if text == result:
+    if text == current:
         placeholder = ""
 
-    return result + placeholder
+    return current + placeholder
+
+
+def fix_display(text: str, font: str | bytes, missing: str = '?') -> str:
+    """
+    Replace unsupported characters by font with placeholder.
+
+    Parameters
+    ----------
+    text: `str`
+        String to validate.
+    font: `str` | `bytes`
+        Font name or bytes-like object.
+    missing: `str`
+        Missing character placeholder.
+    """
+    missing_len = len(missing)
+    current = text
+    index = 0
+
+    while index < len(current):
+        if has_glyph(current[index], font):
+            index += 1
+        else:
+            current = ''.join((
+                current[:index],
+                missing,
+                current[index + 1 :]
+            ))
+            index += missing_len
+          
+    return current

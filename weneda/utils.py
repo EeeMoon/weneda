@@ -1,4 +1,3 @@
-import re
 from fontTools.ttLib import TTFont
 
 
@@ -51,46 +50,3 @@ def has_glyph(char: str, font: str | bytes) -> bool:
             ord(char) in table.cmap.keys() 
             for table in f['cmap'].tables
         )
-
-
-def fix_display(text: str, font: str | bytes, missing: str = '?') -> str:
-    """
-    Replace unsupported characters by font with placeholder.
-
-    Parameters
-    ----------
-    text: `str`
-        String to validate.
-    font: `str` | `bytes`
-        Font name or bytes-like object.
-    missing: `str`
-        Missing character placeholder.
-    """
-    index = 0
-    current = text
-    missing_len = len(missing)
-
-    while index < len(current):
-        if has_glyph(current[index], font):
-            index += 1
-        else:
-            current = ''.join((
-                current[:index],
-                missing,
-                current[index + 1 :]
-            ))
-            index += missing_len
-          
-    return current
-
-
-def urlify(text: str) -> str:
-    """
-    Convert the string to URL format.
-
-    Parameters
-    ----------
-    text: `str`
-        String to format.
-    """
-    return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
