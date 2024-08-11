@@ -3,7 +3,7 @@
 [![support](https://img.shields.io/badge/support-yellow)](https://www.buymeacoffee.com/eeemoon)
 
 # Weneda
-Python module for editing and styling text.
+Modern way to edit and format text.
 
 ## Installation
 To install this module, run the following command:
