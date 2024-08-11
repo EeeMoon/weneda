@@ -15,7 +15,6 @@ pip install weneda
 ### Placeholders
 ```python
 import asyncio
-import asyncio
 from weneda import Formatter, placeholder
 
 
