@@ -160,6 +160,7 @@ def space_between(
 def crop(
     text: str, 
     width: int, 
+    *,
     font: str | bytes | None = None, 
     placeholder: str = "..."
 ) -> str:
@@ -183,13 +184,13 @@ def crop(
         if font else 
         lambda x: len(x)
     )
-    text_width = _get_width(text, font)
-    ph_width = _get_width(placeholder, font)
+    text_width = _get_width(text)
+    ph_width = _get_width(placeholder)
     current = text
     
     while text_width + ph_width > width and width > 0:
         current = current[:-1]
-        text_width = _get_width(current, font)
+        text_width = _get_width(current)
 
     if text == current:
         placeholder = ""
