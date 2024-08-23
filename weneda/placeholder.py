@@ -33,8 +33,6 @@ class Placeholder:
     ----------
     name: `str` | `None`
         Name of the placeholder. If `None`, equals to function name.
-    syntax: `str` | `None`
-        Human-readable usage hint.
     pattern: `str` | `None`
         Regex pattern to match placeholder. If `None`, match any string.
     """
@@ -43,13 +41,11 @@ class Placeholder:
         self, 
         *, 
         name: str, 
-        syntax: str | None, 
         pattern: str | None,
         func: Callable[..., Coroutine]
     ) -> None:
         self.formatter: 'Formatter | None' = None
         self.name: str = name
-        self.syntax: str | None = syntax
         self.pattern: re.Pattern | None = re.compile(pattern) if pattern else None
 
         if self.pattern:
@@ -58,7 +54,7 @@ class Placeholder:
         self.func: Callable[..., Coroutine] = func
 
     def __str__(self) -> str:
-        return self.syntax or self.name
+        return self.name
     
     @classmethod
     def validate_func(cls, func: Callable, pattern: re.Pattern) -> None:
@@ -72,13 +68,14 @@ class Placeholder:
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 inspect.Parameter.KEYWORD_ONLY,
             }:
-                raise ValueError(f"Parameter '{param.name}' should be positional or keyword")
+                raise ValueError(
+                    f"Parameter '{param.name}' should be either positional or keyword"
+                )
     
 
 def placeholder(
     *, 
     name: str | None = None,
-    syntax: str | None = None, 
     pattern: str | None = None
 ) -> Callable[[Callable[..., Coroutine]], Placeholder]:
     """
@@ -88,15 +85,12 @@ def placeholder(
     ----------
     name: `str` | `None`
         Name of the placeholder. If `None`, equals to function name.
-    syntax: `str` | `None`
-        Human-readable usage hint.
     pattern: `str` | `None`
         Regex pattern to match placeholder. If `None`, match any string.
     """
     def helper(func: Callable[..., Coroutine]) -> Placeholder:
         func.__placeholder_args__ = {
             'name': name if name is not None else func.__name__,
-            'syntax': syntax,
             'pattern': pattern
         }
         return func

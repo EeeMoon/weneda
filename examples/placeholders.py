@@ -6,7 +6,6 @@ from weneda import Formatter, placeholder, PlaceholderData
 class MyFormatter(Formatter):
     @placeholder(
         name="upper",
-        syntax="upper_<text>",
         pattern=r"upper_(?P<text>.*)"
     )
     async def upper_handler(self, text: str) -> str:
@@ -14,7 +13,6 @@ class MyFormatter(Formatter):
     
     @placeholder(
         name="repeat",
-        syntax="repeat_<num>_<text>",
         pattern=r"repeat_(?P<num>\d+)_(?P<text>.*)"
     )
     async def repeat_handler(self, num: int, text: str) -> str:
@@ -22,7 +20,6 @@ class MyFormatter(Formatter):
     
     @placeholder(
         name="join",
-        syntax="join_<joiner>_<text>_<text>_...",
         pattern=r"join_(?P<joiner>[^_]+)_(?P<text>.*)"
     )
     async def join_handler(self, joiner: str, text: str) -> str:
